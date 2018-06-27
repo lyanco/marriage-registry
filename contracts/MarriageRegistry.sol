@@ -8,6 +8,7 @@ contract MarriageRegistry is Ownable {
   using SafeMath for uint256;
 
   event NewMarriage(uint256 id, string person1name, string person2name, address person1address, address person2address);
+  event NewProposal(string person1name, string person2name, address person1address, address person2address);
   //event NewDivorce
 
   modifier noActiveMarriage(address _address) {
@@ -19,6 +20,16 @@ contract MarriageRegistry is Ownable {
     require(isActiveMarriageAddress[_address]);
     _;
    }
+
+   modifier noActiveProposal(address _address) {
+     require(activeProposals[_address].senderaddress == 0);
+     _;
+    }
+
+   modifier hasActiveProposal(address _address) {
+     require(activeProposals[_address].senderaddress != 0);
+     _;
+    }
 
   modifier noSelfLove(address _person1address, address _person2address) {
     require (_person1address != _person2address);
@@ -32,15 +43,25 @@ contract MarriageRegistry is Ownable {
     address person2address;
   }
 
+  struct Proposal {
+    string sendername;
+    string recipientname;
+    address senderaddress;
+    address recipientaddress;
+  }
+
   Marriage[] public marriages;
 
   mapping (address => uint256) public marriageIdByAddress;
   mapping (address => bool) public isActiveMarriageAddress;
+  mapping (address => Proposal) public activeProposals;
+
 
 
   //step1: create marriage by submitting 2 addresses. look up any marriage by an address.
   //step2: create marriage by submitting from address, 2nd person approves
   //step3: divorces
+  //step4: proposal tokens - accept/reject by submitting
 
   function getMarriageId(address _address) public view
   hasActiveMarriage(_address)
@@ -48,7 +69,8 @@ contract MarriageRegistry is Ownable {
     return marriageIdByAddress[_address];
   }
 
-  function getMarriageById(uint _id) public view returns (string, string, address, address) {
+  function getMarriageById(uint _id) public view
+  returns (string, string, address, address) {
     Marriage memory m = marriages[_id];
     return (m.person1name, m.person2name, m.person1address, m.person2address);
   }
@@ -58,6 +80,40 @@ contract MarriageRegistry is Ownable {
   returns (string, string, address, address) {
     Marriage memory m = marriages[marriageIdByAddress[_address]];
     return (m.person1name, m.person2name, m.person1address, m.person2address);
+  }
+
+  function propose(string _sendername, string _recipientname, address _recipientaddress)
+  noActiveMarriage(msg.sender)
+  noActiveMarriage(_recipientaddress)
+  noActiveProposal(msg.sender)
+  noActiveProposal(_recipientaddress)
+  noSelfLove(msg.sender, _recipientaddress)
+  external
+  {
+    Proposal memory proposal = Proposal(_sendername, _recipientname, msg.sender, _recipientaddress);
+    activeProposals[msg.sender] = proposal;
+    activeProposals[_recipientaddress] = proposal;
+    emit NewProposal(_sendername, _recipientname, msg.sender, _recipientaddress);
+  }
+
+  function clearProposal()
+  hasActiveProposal(msg.sender)
+  public
+  {
+    Proposal memory proposal = activeProposals[msg.sender];
+    delete activeProposals[proposal.senderaddress];
+    delete activeProposals[proposal.recipientaddress];
+  }
+
+  function acceptProposal()
+  hasActiveProposal(msg.sender)
+  public
+  {
+    Proposal memory proposal = activeProposals[msg.sender];
+    require(proposal.recipientaddress == msg.sender);
+    _createMarriage(proposal.sendername, proposal.recipientname,
+      proposal.senderaddress, proposal.recipientaddress);
+    clearProposal();
   }
 
   function execCreateMarriage(string _person1name, string _person2name,
