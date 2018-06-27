@@ -9,6 +9,7 @@ contract MarriageRegistry is Ownable {
 
   event NewMarriage(uint256 id, string person1name, string person2name, address person1address, address person2address);
   event NewProposal(string person1name, string person2name, address person1address, address person2address);
+  event ClearedProposal(string person1name, string person2name, address person1address, address person2address);
   //event NewDivorce
 
   modifier noActiveMarriage(address _address) {
@@ -96,6 +97,7 @@ contract MarriageRegistry is Ownable {
     emit NewProposal(_sendername, _recipientname, msg.sender, _recipientaddress);
   }
 
+  //Doubles as reject proposal and remove proposal once married
   function clearProposal()
   hasActiveProposal(msg.sender)
   public
@@ -103,11 +105,12 @@ contract MarriageRegistry is Ownable {
     Proposal memory proposal = activeProposals[msg.sender];
     delete activeProposals[proposal.senderaddress];
     delete activeProposals[proposal.recipientaddress];
+    emit ClearedProposal(proposal.sendername, proposal.recipientname, proposal.senderaddress, proposal.recipientaddress);
   }
 
   function acceptProposal()
   hasActiveProposal(msg.sender)
-  public
+  external
   {
     Proposal memory proposal = activeProposals[msg.sender];
     require(proposal.recipientaddress == msg.sender);
