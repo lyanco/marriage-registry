@@ -1,0 +1,10 @@
+var mr = MarriageRegistry.at(MarriageRegistry.address);
+var address0 = web3.eth.accounts[0];
+var address1 = web3.eth.accounts[1];
+var address2 = web3.eth.accounts[2];
+var address3 = web3.eth.accounts[3];
+var events = [];
+var event = mr.NewMarriage(function(error, result) {if (!error) {console.log(result);events.push(result);}});
+var res = mr.execCreateMarriage("lee","rachel",address0,address1);
+mr.getMarriageByAddress.call(address0);
+var res = mr.execCreateMarriage("bob","carol",address2,address3, {from:address1});
