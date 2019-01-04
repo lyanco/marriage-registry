@@ -1,0 +1,2 @@
+*.js linguist-language=Solidity
+*.json linguist-language=Solidity
